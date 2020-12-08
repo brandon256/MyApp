@@ -5,7 +5,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -16,12 +21,24 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
     private static final int CALL_PHONE = 34;
     private EditText msg,name;
     private Button send;
+    Double latitude,longitude;
+
+    BroadcastReceiver myreciever=new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int y=intent.getIntExtra("level",0);
+            TextView view=(TextView)findViewById(R.id.textView4);
+            view.setText("Battery At  :"+ Integer.toString(y)+"%");
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,6 +47,16 @@ public class MainActivity extends AppCompatActivity {
         msg=findViewById(R.id.message);
         name=findViewById(R.id.editTextTextPersonName);
         send = findViewById(R.id.sendButton);
+        registerReceiver(myreciever,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        try {
+            Intent intent = new Intent(getApplicationContext(), LocationTrackingService.class);
+            startService(intent);
+            latitude = Double.valueOf(intent.getStringExtra("latutide"));
+            longitude = Double.valueOf(intent.getStringExtra("longitude"));
+            Toast.makeText(this, "Lat "+latitude, Toast.LENGTH_SHORT).show();
+        }catch (Exception p){
+            Toast.makeText(this, ""+p.getMessage(), Toast.LENGTH_LONG).show();
+        }
 
         send.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -62,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
                 return true;
             case R.id.c_file:
-                Toast.makeText(this, "C FILE", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, DisplayFile.class));
                 return true;
             case R.id.email:
               sendEmail();
@@ -122,6 +149,42 @@ public class MainActivity extends AppCompatActivity {
         } catch (android.content.ActivityNotFoundException ex) {
             Toast.makeText(MainActivity.this,
                     "There is no email client installed.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            latitude = Double.valueOf(intent.getStringExtra("latutide"));
+            longitude = Double.valueOf(intent.getStringExtra("longitude"));
+            try {
+                Toast.makeText(context, "Longitude "+longitude+" Lat: "+latitude, Toast.LENGTH_SHORT).show();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(broadcastReceiver, new IntentFilter(LocationTrackingService.str_receiver));
+    }
+
+    public void setAlarm(View view) {
+        EditText check=(EditText) findViewById(R.id.editTextTextPersonName3);
+        String ck=check.getText().toString();
+        if(ck.isEmpty()){
+            Toast.makeText(this,"set alarm first",Toast.LENGTH_SHORT).show();
+        }else {
+            EditText editText = (EditText) findViewById(R.id.editTextTextPersonName3);
+            int i = Integer.parseInt(editText.getText().toString());
+            Intent intent = new Intent(getApplicationContext(), AlarmReciever.class);
+            PendingIntent pendingIntent;
+            pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, intent, 0);
+            AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + (i * 1000), pendingIntent);
+            Toast.makeText(this, "the time set was " + i + " seconds", Toast.LENGTH_LONG).show();
         }
     }
 }
