@@ -13,7 +13,8 @@ public class MessageActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_message);
         String message= getIntent().getStringExtra("message");
+        String name= getIntent().getStringExtra("name");
         TextView textView =new TextView(this);
-        textView.setText("Message Recieved: "+message);
+        textView.setText("Name:  "+name+ "\nMessage: "+message);
     }
 }
